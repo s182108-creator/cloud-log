@@ -3,29 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>클라우드 작업일지 V14.6</title>
+    <title>클라우드 작업일지 V14.7 (날짜 고정형)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; }
         @media (prefers-color-scheme: dark) { :root { --bg-body: #181a1b; --bg-card: #242729; --text-main: #e8e6e3; --border: #3e4446; } }
-        
         body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; }
         .container { max-width: 900px; margin: 0 auto; background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
         .summary-bar { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2980b9; color: white; border-radius: 10px; position: sticky; top: 10px; z-index: 100; }
         .summary-item { flex: 1; text-align: center; }
         .summary-label { font-size: 11px; opacity: 0.8; }
         .summary-value { font-size: 1.1em; font-weight: bold; margin-top: 3px; }
-
         .top-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; flex-grow: 1; font-size: 14px; }
         .btn-add { background: #3498db; }
         .btn-load { background: #34495e; }
         .btn-save { background: #2ecc71; }
-        .btn-excel { background: #f39c12; }
-        
         #loadingLayer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); z-index:9999; justify-content:center; align-items:center; color:white; }
-
         .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; overflow: hidden; background: var(--bg-card); }
         .log-header { padding: 10px; background: rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
         .log-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
@@ -57,26 +51,25 @@
         <button class="btn btn-add" onclick="addLog()">➕ 추가</button>
         <button class="btn btn-load" onclick="loadFromCloud()">🔄 불러오기</button>
         <button class="btn btn-save" onclick="saveToCloud(true)">💾 저장</button>
-        <button class="btn btn-excel" onclick="exportEx()">📊 엑셀</button>
     </div>
 
     <div id="logList"></div>
 </div>
 
 <script>
-    // ⚠️ 여기에 복사한 구글 배포 URL을 넣으세요!
     const API_URL = "https://script.google.com/macros/s/AKfycbwykn8FjDC-Gewv-0UlDRP5rV3eoTjEJBEFcH7n6aYNIWiA-8L--UetOJirizeq5iVM/exec";
 
-    // 날짜 형식을 YYYY-MM-DD로 변환하는 안전한 함수
-    function formatDate(dateStr) {
-        if (!dateStr) return "";
-        try {
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr; // 변환 실패시 원본 반환
-            return d.toISOString().split('T')[0];
-        } catch(e) {
-            return dateStr;
-        }
+    // ✅ 시차 오류를 원천 차단하는 날짜 포맷 함수
+    function fixDate(d) {
+        if (!d) return "";
+        // 시트에서 온 날짜가 객체인 경우와 문자열인 경우 모두 대응
+        let date = new Date(d);
+        if (isNaN(date.getTime())) return String(d).split('T')[0]; 
+        
+        let year = date.getFullYear();
+        let month = ("0" + (date.getMonth() + 1)).slice(-2);
+        let day = ("0" + date.getDate()).slice(-2);
+        return `${year}-${month}-${day}`;
     }
 
     function updateTotal() {
@@ -91,7 +84,7 @@
     async function saveToCloud(manual) {
         const logs = Array.from(document.querySelectorAll('.log-card')).map(card => ({
             id: card.id.replace('card-',''),
-            date: card.querySelector('.edit-date').value,
+            date: card.querySelector('.edit-date').value, // YYYY-MM-DD 문자열 그대로 추출
             worker: card.querySelector('.worker').value,
             company: card.querySelector('.company').value,
             amount: card.querySelector('.amount').value,
@@ -106,8 +99,8 @@
         document.getElementById('loadingLayer').style.display = 'flex';
         try {
             await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "save", logs: logs }) });
-            if(manual) alert("✅ 클라우드 동기화 완료");
-        } catch(e) { alert("❌ 오류 발생"); }
+            if(manual) alert("✅ 저장되었습니다.");
+        } catch(e) { alert("❌ 저장 실패"); }
         document.getElementById('loadingLayer').style.display = 'none';
     }
 
@@ -118,8 +111,8 @@
             const data = await resp.json();
             document.getElementById('logList').innerHTML = '';
             
-            // 날짜 기준 정렬
-            data.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(d => {
+            // ✅ 날짜 문자열로 변환 후 정렬
+            data.sort((a,b) => new Date(fixDate(a.date)) - new Date(fixDate(b.date))).forEach(d => {
                 addLog(d, true);
             });
             updateTotal();
@@ -129,22 +122,19 @@
 
     function addLog(data = null, isLoad = false) {
         const id = data ? data.id : Date.now();
-        
-        // 데이터 로드 시 날짜 포맷 강제 수정
-        const dateValue = data ? formatDate(data.date) : document.getElementById('mainDate').value;
+        const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
 
         const div = document.createElement('div');
         div.className = 'log-card';
         div.id = `card-${id}`;
         
-        // 체크박스 상태값 처리 (문자열 "true" 대응)
         const isDirect = data?.direct === true || data?.direct === "true";
         const isSign = data?.sign === true || data?.sign === "true";
 
         div.innerHTML = `
             <div class="log-header">
                 <input type="date" class="edit-date" value="${dateValue}">
-                <button onclick="if(confirm('삭제할까요?')){document.getElementById('card-${id}').remove(); updateTotal();}" style="border:none; background:none; color:red; font-weight:bold;">삭제</button>
+                <button onclick="if(confirm('삭제할까요?')){document.getElementById('card-${id}').remove(); updateTotal();}" style="border:none; background:none; color:red;">삭제</button>
             </div>
             <div class="log-grid">
                 <div class="field-group"><label>작업자</label><input type="text" class="worker" value="${data?.worker || ''}"></div>
@@ -170,20 +160,6 @@
         if (num > 0 && num < 1000) num *= 10000;
         input.value = num.toLocaleString();
         updateTotal();
-    }
-
-    function exportEx() {
-        const rows = Array.from(document.querySelectorAll('.log-card')).map(card => ({
-            "날짜": card.querySelector('.edit-date').value,
-            "작업자": card.querySelector('.worker').value,
-            "업체명": card.querySelector('.company').value,
-            "금액": card.querySelector('.amount').value,
-            "비고": card.querySelector('.note').value
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "일지");
-        XLSX.writeFile(wb, `작업일지_${new Date().toLocaleDateString()}.xlsx`);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
