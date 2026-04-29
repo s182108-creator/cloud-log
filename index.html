@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>통합 작업일지 V15</title>
+    <title>통합 작업일지 V15.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; }
@@ -11,13 +11,11 @@
         body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* 🚀 상단 고정 요약 바 */
         .summary-bar { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2980b9; color: white; border-radius: 10px; position: sticky; top: 10px; z-index: 100; }
         .summary-item { flex: 1; text-align: center; }
         .summary-label { font-size: 11px; opacity: 0.8; }
         .summary-value { font-size: 1.1em; font-weight: bold; margin-top: 3px; }
 
-        /* 🚀 드래그 가능한 플로팅 계산기 */
         #floatingCalc {
             position: fixed; top: 120px; right: 20px; width: 280px;
             background: var(--bg-card); border: 2px solid var(--accent);
@@ -45,6 +43,7 @@
         input, textarea { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-main); font-size: 14px; }
         .amount-input { border-color: #e67e22; color: #e67e22; font-weight: bold; }
         .full-width { grid-column: span 2; }
+        .my-biz-label { color: #e74c3c !important; font-weight: bold; } /* 내 거래처 강조색 */
     </style>
 </head>
 <body>
@@ -71,7 +70,7 @@
 <div class="container">
     <div class="summary-bar">
         <div class="summary-item"><div class="summary-label">총 작업 금액</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
-        <div class="summary-item"><div class="summary-label">수익 (40%)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
+        <div class="summary-item"><div class="summary-label">내 총 수당 (40% + 인센)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
     </div>
 
     <div class="top-controls">
@@ -89,7 +88,6 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwykn8FjDC-Gewv-0UlDRP5rV3eoTjEJBEFcH7n6aYNIWiA-8L--UetOJirizeq5iVM/exec";
 
-    // 1. 계산기 로직 (V10 단가 기준 복구)
     function updateResult(min) {
         let p = 0;
         if (min >= 1 && min <= 70) p = 200000;
@@ -123,7 +121,6 @@
         el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
     }
 
-    // 2. 날짜 시차 오류 해결 함수
     function fixDate(d) {
         if (!d) return "";
         let date = new Date(d);
@@ -134,16 +131,32 @@
         return `${year}-${month}-${day}`;
     }
 
+    // 🚀 수정된 계산 로직: 내 거래처 체크 시 10% 선지급 반영
     function updateTotal() {
-        let total = 0;
-        document.querySelectorAll('.amount-input').forEach(el => {
-            total += parseInt(el.value.replace(/,/g, '')) || 0;
+        let totalSales = 0;
+        let totalMyPay = 0;
+
+        document.querySelectorAll('.log-card').forEach(card => {
+            const amount = parseInt(card.querySelector('.amount-input').value.replace(/,/g, '')) || 0;
+            const isMyBiz = card.querySelector('.my-biz-check').checked;
+
+            totalSales += amount;
+
+            if (isMyBiz) {
+                // 내 거래처일 때: (전체 금액의 10%) + (나머지 금액의 40% 가 아니라 전체의 40% 합산이 맞는지 확인필요)
+                // 요청사항: 60만원일 때 10%(6만원) 내 수당 + 전체의 40%(24만원)
+                const incentive = amount * 0.1;
+                const basePay = amount * 0.4;
+                totalMyPay += (incentive + basePay);
+            } else {
+                totalMyPay += (amount * 0.4);
+            }
         });
-        document.getElementById('totalAmountDisp').innerText = total.toLocaleString() + "원";
-        document.getElementById('myShareDisp').innerText = Math.floor(total * 0.4).toLocaleString() + "원";
+
+        document.getElementById('totalAmountDisp').innerText = totalSales.toLocaleString() + "원";
+        document.getElementById('myShareDisp').innerText = Math.floor(totalMyPay).toLocaleString() + "원";
     }
 
-    // 3. 클라우드 동기화 및 엑셀 저장
     async function saveToCloud(manual) {
         const logs = Array.from(document.querySelectorAll('.log-card')).map(card => ({
             id: card.id.replace('card-',''),
@@ -155,6 +168,7 @@
             type: card.querySelector('.type').value,
             m30: card.querySelector('.m30').value,
             direct: card.querySelector('.direct').checked,
+            myBiz: card.querySelector('.my-biz-check').checked, // 🚀 추가된 필드
             note: card.querySelector('.note').value
         }));
         document.getElementById('loadingLayer').style.display = 'flex';
@@ -183,6 +197,7 @@
             "작업자": c.querySelector('.worker').value,
             "업체명": c.querySelector('.company').value,
             "금액": c.querySelector('.amount').value,
+            "내거래처": c.querySelector('.my-biz-check').checked ? "Y" : "N",
             "장소": c.querySelector('.location').value,
             "비고": c.querySelector('.note').value
         }));
@@ -197,6 +212,10 @@
         const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
         const div = document.createElement('div');
         div.className = 'log-card'; div.id = `card-${id}`;
+        
+        // 데이터 불러올 때 체크 여부 확인
+        const myBizChecked = data?.myBiz === true || data?.myBiz === "true" ? 'checked' : '';
+
         div.innerHTML = `
             <div class="log-header">
                 <input type="date" class="edit-date" value="${dateValue}" style="border:none; background:none; font-weight:bold;">
@@ -206,6 +225,7 @@
                 <div class="field-group"><label>작업자</label><input type="text" class="worker" value="${data?.worker || ''}"></div>
                 <div class="field-group"><label>업체명</label><input type="text" class="company" value="${data?.company || ''}"></div>
                 <div class="field-group"><label>금액</label><input type="text" class="amount amount-input" value="${data?.amount || ''}" oninput="updateTotal()" onblur="smartAmount(this)"></div>
+                <div class="field-group"><label class="my-biz-label">내 거래처(10%)</label><input type="checkbox" class="my-biz-check" ${myBizChecked} onchange="updateTotal()" style="width:22px;height:22px;"></div>
                 <div class="field-group"><label>장소</label><input type="text" class="location" value="${data?.location || ''}"></div>
                 <div class="field-group"><label>유형</label><input type="text" class="type" value="${data?.type || ''}"></div>
                 <div class="field-group"><label>30M</label><input type="text" class="m30" value="${data?.m30 || ''}"></div>
@@ -226,7 +246,6 @@
         updateTotal();
     }
 
-    // 드래그 기능 구현
     function makeDraggable(el) {
         let p1 = 0, p2 = 0, p3 = 0, p4 = 0;
         const header = document.getElementById("calcHeader");
