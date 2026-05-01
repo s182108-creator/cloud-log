@@ -3,57 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>통합 작업일지 V15.7</title>
+    <title>통합 작업일지 V15.8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; }
-        @media (prefers-color-scheme: dark) { :root { --bg-body: #181a1b; --bg-card: #242729; --text-main: #e8e6e3; --border: #3e4446; } }
+        :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; --calc-bg: #ffffff; }
+        @media (prefers-color-scheme: dark) { 
+            :root { --bg-body: #181a1b; --bg-card: #242729; --text-main: #e8e6e3; --border: #3e4446; --calc-bg: #2c3133; } 
+        }
         body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .summary-bar { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2c3e50; color: white; border-radius: 10px; position: sticky; top: 10px; z-index: 100; }
+        
+        /* 요약 바: 가독성을 위해 불투명 설정 */
+        .summary-bar { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2c3e50; color: white; border-radius: 10px; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .summary-item { flex: 1; text-align: center; }
         .summary-label { font-size: 11px; opacity: 0.8; }
         .summary-value { font-size: 1.1em; font-weight: bold; margin-top: 3px; }
         
-        /* 계산기 팝업 스타일 */
+        /* 🧮 계산기 스타일 수정: 반투명 제거 및 시인성 강화 */
         #floatingCalc {
             position: fixed; top: 120px; right: 20px; width: 280px;
-            background: var(--bg-card); border: 2px solid var(--accent);
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: var(--calc-bg); border: 2px solid var(--accent);
+            border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.5);
             z-index: 1000; display: none; overflow: hidden;
         }
         .calc-header { background: var(--accent); color: white; padding: 12px; font-weight: bold; cursor: move; display: flex; justify-content: space-between; align-items: center; }
         .calc-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .calc-row { display: flex; justify-content: space-between; align-items: center; }
         .calc-row input { width: 110px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); }
-        .result-box { background: rgba(52, 152, 219, 0.1); border: 1px dashed var(--accent); padding: 12px; border-radius: 8px; text-align: center; }
+        .result-box { background: rgba(52, 152, 219, 0.15); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; text-align: center; }
 
         .filter-section { display: flex; gap: 8px; margin-bottom: 15px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; align-items: center; justify-content: center; }
         .filter-section select { padding: 8px; border-radius: 6px; border: 1px solid var(--accent); background: var(--bg-card); color: var(--text-main); }
         .top-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; flex-grow: 1; font-size: 13px; }
-        .btn-add { background: #3498db; } .btn-load { background: #34495e; } .btn-save { background: #2ecc71; } .btn-calc { background: #9b59b6; } .btn-excel { background: #f39c12; }
+        .btn-add { background: #3498db; } .btn-save { background: #2ecc71; } .btn-calc { background: #9b59b6; } .btn-excel { background: #f39c12; }
         
-        .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); transition: 0.3s; }
-        .log-card.excluded { background: #fdf2f2; border-color: #fab1a0; }
+        .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); }
+        .log-card.excluded { background: rgba(231, 76, 60, 0.05); border-color: #fab1a0; opacity: 0.8; }
         .log-header { padding: 10px; background: rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
         .log-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
         .field-group { display: flex; flex-direction: column; }
         label { font-size: 11px; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
         input, textarea { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-main); font-size: 14px; }
         .amount-input { border-color: #e67e22; color: #e67e22; font-weight: bold; }
-        #loadingLayer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center; color:white; font-weight:bold; }
+        #loadingLayer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center; color:white; font-weight:bold; }
     </style>
 </head>
-<body>
+<body onclick="handleGlobalClick(event)">
 
-<div id="loadingLayer">데이터를 처리하고 있습니다...</div>
+<div id="loadingLayer">데이터 처리 중...</div>
 
-<!-- 🧮 복구된 단가 계산기 -->
-<div id="floatingCalc">
+<!-- 🧮 스타일 개선된 계산기 -->
+<div id="floatingCalc" onclick="event.stopPropagation()">
     <div class="calc-header" id="calcHeader">
         <span>🧮 단가 계산기</span>
-        <span style="cursor:pointer; font-size: 20px;" onclick="toggleCalc()">×</span>
+        <span style="cursor:pointer; font-size: 20px;" onclick="closeCalc()">×</span>
     </div>
     <div class="calc-body">
         <div class="calc-row"><label>시작 시간</label><input type="time" id="sTime" oninput="calcByTime()"></div>
@@ -69,8 +73,8 @@
 
 <div class="container">
     <div class="summary-bar">
-        <div class="summary-item"><div class="summary-label">총 매출 (전체)</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
-        <div class="summary-item"><div class="summary-label">내 수당 (제외항목 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
+        <div class="summary-item"><div class="summary-label">총 매출</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
+        <div class="summary-item"><div class="summary-label">내 수당(제외항목 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
     </div>
 
     <div class="filter-section">
@@ -87,8 +91,8 @@
     <div class="top-controls">
         <input type="date" id="mainDate" style="flex-grow: 1.5;">
         <button class="btn btn-add" onclick="addLog()">➕ 추가</button>
-        <button class="btn btn-calc" onclick="toggleCalc()">🧮 계산기</button>
-        <button class="btn btn-save" onclick="saveToCloud(true)">💾 전체 저장</button>
+        <button class="btn btn-calc" onclick="toggleCalc(event)">🧮 계산기</button>
+        <button class="btn btn-save" onclick="saveToCloud(true)">💾 저장</button>
         <button class="btn btn-excel" onclick="exportEx()">📊 엑셀</button>
     </div>
 
@@ -98,7 +102,41 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwykn8FjDC-Gewv-0UlDRP5rV3eoTjEJBEFcH7n6aYNIWiA-8L--UetOJirizeq5iVM/exec";
 
-    // --- 계산기 로직 ---
+    // --- 계산기 로직 및 자동 닫힘 ---
+    function resetCalc() {
+        document.getElementById('sTime').value = '';
+        document.getElementById('eTime').value = '';
+        document.getElementById('directMin').value = '';
+        document.getElementById('rTimeDisp').innerText = '시간을 입력하세요';
+        document.getElementById('rPriceDisp').innerText = '0원';
+    }
+
+    function closeCalc() {
+        document.getElementById('floatingCalc').style.display = 'none';
+        resetCalc();
+    }
+
+    function toggleCalc(e) {
+        e.stopPropagation();
+        const el = document.getElementById('floatingCalc');
+        if (el.style.display === 'block') {
+            closeCalc();
+        } else {
+            el.style.display = 'block';
+        }
+    }
+
+    // 전역 클릭 감지: 계산기 외 영역 클릭 시 닫기
+    function handleGlobalClick(e) {
+        const calc = document.getElementById('floatingCalc');
+        if (calc.style.display === 'block') {
+            // 클릭된 요소가 입력 필드(input, textarea)인 경우 계산기 닫기 및 초기화
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                closeCalc();
+            }
+        }
+    }
+
     function updateCalcResult(min) {
         let p = 0;
         if (min >= 1 && min <= 70) p = 200000;
@@ -109,6 +147,7 @@
         document.getElementById('rTimeDisp').innerText = `계산 결과: ${min}분`;
         document.getElementById('rPriceDisp').innerText = p.toLocaleString() + "원";
     }
+
     function calcByTime() {
         const s = document.getElementById('sTime').value;
         const e = document.getElementById('eTime').value;
@@ -118,59 +157,61 @@
         document.getElementById('directMin').value = diff;
         updateCalcResult(diff);
     }
+
     function calcByMin() {
         const min = parseInt(document.getElementById('directMin').value) || 0;
         document.getElementById('sTime').value = '';
         document.getElementById('eTime').value = '';
         updateCalcResult(min);
     }
-    function toggleCalc() {
-        const el = document.getElementById('floatingCalc');
-        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
-    }
 
-    // --- 메인 로직 ---
-    function initFilter() {
-        const yearSelect = document.getElementById('filterYear');
-        const curr = new Date();
-        for(let i = curr.getFullYear()-1; i <= curr.getFullYear()+1; i++) {
-            const opt = document.createElement('option');
-            opt.value = i; opt.innerText = i + "년";
-            if(i === curr.getFullYear()) opt.selected = true;
-            yearSelect.appendChild(opt);
-        }
-        document.getElementById('filterMonth').value = ("0" + (curr.getMonth() + 1)).slice(-2);
-    }
-
-    function fixDate(d) {
-        if (!d) return "";
-        let date = new Date(d);
-        if (isNaN(date.getTime())) return String(d).split('T')[0];
-        return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`;
-    }
-
+    // --- 메인 데이터 로직 ---
     function updateTotal() {
-        let totalSales = 0;
-        let totalMyPay = 0;
-
+        let totalSales = 0, totalMyPay = 0;
         document.querySelectorAll('.log-card').forEach(card => {
             const isExcluded = card.querySelector('.exclude-check').checked;
             const amount = parseInt(card.querySelector('.amount-input').value.replace(/,/g, '')) || 0;
             const isMyBiz = card.querySelector('.my-biz-check').checked;
-
-            totalSales += amount; // 매출은 무조건 합산
-
+            totalSales += amount;
             if (!isExcluded) {
                 card.classList.remove('excluded');
-                // 내 거래처면 50%(기본40+인센10), 아니면 40%
                 totalMyPay += isMyBiz ? (amount * 0.5) : (amount * 0.4);
             } else {
                 card.classList.add('excluded');
             }
         });
-
         document.getElementById('totalAmountDisp').innerText = totalSales.toLocaleString() + "원";
         document.getElementById('myShareDisp').innerText = Math.floor(totalMyPay).toLocaleString() + "원";
+    }
+
+    function addLog(data = null, isLoad = false) {
+        const id = data ? data.id : Date.now();
+        const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
+        const div = document.createElement('div');
+        div.className = 'log-card'; div.id = `card-${id}`;
+        div.innerHTML = `
+            <div class="log-header">
+                <input type="date" class="edit-date" value="${dateValue}" style="border:none; background:none; font-weight:bold;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="color:#e74c3c; font-size:12px;">수당제외</label>
+                    <input type="checkbox" class="exclude-check" ${data?.isExclude ? 'checked' : ''} onchange="updateTotal()">
+                    <button onclick="if(confirm('삭제?')){document.getElementById('card-${id}').remove(); updateTotal();}" style="border:none; background:none; color:#7f8c8d; cursor:pointer;">삭제</button>
+                </div>
+            </div>
+            <div class="log-grid">
+                <div class="field-group"><label>작업자</label><input type="text" class="worker" value="${data?.worker || ''}"></div>
+                <div class="field-group"><label>업체명</label><input type="text" class="company" value="${data?.company || ''}"></div>
+                <div class="field-group"><label>금액</label><input type="text" class="amount amount-input" value="${data?.amount || ''}" oninput="updateTotal()" onblur="smartAmount(this)"></div>
+                <div class="field-group"><label style="color:#e74c3c">내 거래처(10%)</label><input type="checkbox" class="my-biz-check" ${data?.myBiz ? 'checked' : ''} onchange="updateTotal()"></div>
+                <div class="field-group"><label>장소</label><input type="text" class="location" value="${data?.location || ''}"></div>
+                <div class="field-group"><label>유형</label><input type="text" class="type" value="${data?.type || ''}"></div>
+                <div class="field-group"><label>30M</label><input type="text" class="m30" value="${data?.m30 || ''}"></div>
+                <div class="field-group"><label>직수</label><input type="checkbox" class="direct" ${data?.direct ? 'checked' : ''}></div>
+                <div class="field-group" style="grid-column: span 2;"><label>비고</label><textarea class="note" rows="2">${data?.note || ''}</textarea></div>
+            </div>`;
+        const list = document.getElementById('logList');
+        isLoad ? list.appendChild(div) : list.insertBefore(div, list.firstChild);
+        updateTotal();
     }
 
     async function loadFromCloud() {
@@ -211,35 +252,23 @@
         document.getElementById('loadingLayer').style.display = 'none';
     }
 
-    function addLog(data = null, isLoad = false) {
-        const id = data ? data.id : Date.now();
-        const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
-        const div = document.createElement('div');
-        div.className = 'log-card'; div.id = `card-${id}`;
-        
-        div.innerHTML = `
-            <div class="log-header">
-                <input type="date" class="edit-date" value="${dateValue}" style="border:none; background:none; font-weight:bold;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <label style="color:#e74c3c; font-size:12px; font-weight:bold;">수당제외</label>
-                    <input type="checkbox" class="exclude-check" ${data?.isExclude ? 'checked' : ''} onchange="updateTotal()">
-                    <button onclick="if(confirm('삭제?')){document.getElementById('card-${id}').remove(); updateTotal();}" style="border:none; background:none; color:#7f8c8d; cursor:pointer;">삭제</button>
-                </div>
-            </div>
-            <div class="log-grid">
-                <div class="field-group"><label>작업자</label><input type="text" class="worker" value="${data?.worker || ''}"></div>
-                <div class="field-group"><label>업체명</label><input type="text" class="company" value="${data?.company || ''}"></div>
-                <div class="field-group"><label>금액</label><input type="text" class="amount amount-input" value="${data?.amount || ''}" oninput="updateTotal()" onblur="smartAmount(this)"></div>
-                <div class="field-group"><label style="color:#e74c3c">내 거래처(10%)</label><input type="checkbox" class="my-biz-check" ${data?.myBiz ? 'checked' : ''} onchange="updateTotal()"></div>
-                <div class="field-group"><label>장소</label><input type="text" class="location" value="${data?.location || ''}"></div>
-                <div class="field-group"><label>유형</label><input type="text" class="type" value="${data?.type || ''}"></div>
-                <div class="field-group"><label>30M</label><input type="text" class="m30" value="${data?.m30 || ''}"></div>
-                <div class="field-group"><label>직수</label><input type="checkbox" class="direct" ${data?.direct ? 'checked' : ''}></div>
-                <div class="field-group" style="grid-column: span 2;"><label>비고</label><textarea class="note" rows="2">${data?.note || ''}</textarea></div>
-            </div>`;
-        const list = document.getElementById('logList');
-        isLoad ? list.appendChild(div) : list.insertBefore(div, list.firstChild);
-        updateTotal();
+    function initFilter() {
+        const yearSelect = document.getElementById('filterYear');
+        const curr = new Date();
+        for(let i = curr.getFullYear()-1; i <= curr.getFullYear()+1; i++) {
+            const opt = document.createElement('option');
+            opt.value = i; opt.innerText = i + "년";
+            if(i === curr.getFullYear()) opt.selected = true;
+            yearSelect.appendChild(opt);
+        }
+        document.getElementById('filterMonth').value = ("0" + (curr.getMonth() + 1)).slice(-2);
+    }
+
+    function fixDate(d) {
+        if (!d) return "";
+        let date = new Date(d);
+        if (isNaN(date.getTime())) return String(d).split('T')[0];
+        return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`;
     }
 
     function smartAmount(input) {
