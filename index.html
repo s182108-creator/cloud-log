@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>통합 작업일지 V15.8</title>
+    <title>통합 작업일지 V15.9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; --calc-bg: #ffffff; }
@@ -12,32 +12,21 @@
         }
         body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        /* 요약 바: 가독성을 위해 불투명 설정 */
         .summary-bar { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2c3e50; color: white; border-radius: 10px; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .summary-item { flex: 1; text-align: center; }
         .summary-label { font-size: 11px; opacity: 0.8; }
         .summary-value { font-size: 1.1em; font-weight: bold; margin-top: 3px; }
-        
-        /* 🧮 계산기 스타일 수정: 반투명 제거 및 시인성 강화 */
-        #floatingCalc {
-            position: fixed; top: 120px; right: 20px; width: 280px;
-            background: var(--calc-bg); border: 2px solid var(--accent);
-            border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-            z-index: 1000; display: none; overflow: hidden;
-        }
+        #floatingCalc { position: fixed; top: 120px; right: 20px; width: 280px; background: var(--calc-bg); border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); z-index: 1000; display: none; overflow: hidden; }
         .calc-header { background: var(--accent); color: white; padding: 12px; font-weight: bold; cursor: move; display: flex; justify-content: space-between; align-items: center; }
         .calc-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .calc-row { display: flex; justify-content: space-between; align-items: center; }
         .calc-row input { width: 110px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); }
         .result-box { background: rgba(52, 152, 219, 0.15); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; text-align: center; }
-
         .filter-section { display: flex; gap: 8px; margin-bottom: 15px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; align-items: center; justify-content: center; }
         .filter-section select { padding: 8px; border-radius: 6px; border: 1px solid var(--accent); background: var(--bg-card); color: var(--text-main); }
         .top-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; flex-grow: 1; font-size: 13px; }
         .btn-add { background: #3498db; } .btn-save { background: #2ecc71; } .btn-calc { background: #9b59b6; } .btn-excel { background: #f39c12; }
-        
         .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); }
         .log-card.excluded { background: rgba(231, 76, 60, 0.05); border-color: #fab1a0; opacity: 0.8; }
         .log-header { padding: 10px; background: rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
@@ -50,10 +39,7 @@
     </style>
 </head>
 <body onclick="handleGlobalClick(event)">
-
 <div id="loadingLayer">데이터 처리 중...</div>
-
-<!-- 🧮 스타일 개선된 계산기 -->
 <div id="floatingCalc" onclick="event.stopPropagation()">
     <div class="calc-header" id="calcHeader">
         <span>🧮 단가 계산기</span>
@@ -70,13 +56,11 @@
         </div>
     </div>
 </div>
-
 <div class="container">
     <div class="summary-bar">
         <div class="summary-item"><div class="summary-label">총 매출</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
         <div class="summary-item"><div class="summary-label">내 수당(제외항목 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
     </div>
-
     <div class="filter-section">
         📅 <select id="filterYear"></select>
         <select id="filterMonth">
@@ -87,7 +71,6 @@
         </select>
         <button onclick="loadFromCloud()" style="margin-left:5px; padding:5px 15px; cursor:pointer;">조회</button>
     </div>
-
     <div class="top-controls">
         <input type="date" id="mainDate" style="flex-grow: 1.5;">
         <button class="btn btn-add" onclick="addLog()">➕ 추가</button>
@@ -95,14 +78,11 @@
         <button class="btn btn-save" onclick="saveToCloud(true)">💾 저장</button>
         <button class="btn btn-excel" onclick="exportEx()">📊 엑셀</button>
     </div>
-
     <div id="logList"></div>
 </div>
-
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxoy3X2D_0OXAN-_2VHgFY9QQAQDMNNaBKPXw6MD7skeiQDXfJYEQlAsT9T2CTVqSfesg/exec";
 
-    // --- 계산기 로직 및 자동 닫힘 ---
     function resetCalc() {
         document.getElementById('sTime').value = '';
         document.getElementById('eTime').value = '';
@@ -110,33 +90,14 @@
         document.getElementById('rTimeDisp').innerText = '시간을 입력하세요';
         document.getElementById('rPriceDisp').innerText = '0원';
     }
-
-    function closeCalc() {
-        document.getElementById('floatingCalc').style.display = 'none';
-        resetCalc();
-    }
-
-    function toggleCalc(e) {
-        e.stopPropagation();
-        const el = document.getElementById('floatingCalc');
-        if (el.style.display === 'block') {
-            closeCalc();
-        } else {
-            el.style.display = 'block';
-        }
-    }
-
-    // 전역 클릭 감지: 계산기 외 영역 클릭 시 닫기
+    function closeCalc() { document.getElementById('floatingCalc').style.display = 'none'; resetCalc(); }
+    function toggleCalc(e) { e.stopPropagation(); const el = document.getElementById('floatingCalc'); el.style.display = (el.style.display === 'block') ? 'none' : 'block'; }
     function handleGlobalClick(e) {
         const calc = document.getElementById('floatingCalc');
         if (calc.style.display === 'block') {
-            // 클릭된 요소가 입력 필드(input, textarea)인 경우 계산기 닫기 및 초기화
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-                closeCalc();
-            }
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') closeCalc();
         }
     }
-
     function updateCalcResult(min) {
         let p = 0;
         if (min >= 1 && min <= 70) p = 200000;
@@ -147,7 +108,6 @@
         document.getElementById('rTimeDisp').innerText = `계산 결과: ${min}분`;
         document.getElementById('rPriceDisp').innerText = p.toLocaleString() + "원";
     }
-
     function calcByTime() {
         const s = document.getElementById('sTime').value;
         const e = document.getElementById('eTime').value;
@@ -157,15 +117,12 @@
         document.getElementById('directMin').value = diff;
         updateCalcResult(diff);
     }
-
     function calcByMin() {
         const min = parseInt(document.getElementById('directMin').value) || 0;
-        document.getElementById('sTime').value = '';
-        document.getElementById('eTime').value = '';
+        document.getElementById('sTime').value = ''; document.getElementById('eTime').value = '';
         updateCalcResult(min);
     }
 
-    // --- 메인 데이터 로직 ---
     function updateTotal() {
         let totalSales = 0, totalMyPay = 0;
         document.querySelectorAll('.log-card').forEach(card => {
@@ -185,7 +142,8 @@
     }
 
     function addLog(data = null, isLoad = false) {
-        const id = data ? data.id : Date.now();
+        // ID 보존: 로드된 데이터면 d.id를 쓰고, 새로 추가면 타임스탬프를 씀
+        const id = data ? data.id : Date.now() + Math.floor(Math.random()*1000);
         const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
         const div = document.createElement('div');
         div.className = 'log-card'; div.id = `card-${id}`;
@@ -194,7 +152,7 @@
                 <input type="date" class="edit-date" value="${dateValue}" style="border:none; background:none; font-weight:bold;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <label style="color:#e74c3c; font-size:12px;">수당제외</label>
-                    <input type="checkbox" class="exclude-check" ${data?.isExclude ? 'checked' : ''} onchange="updateTotal()">
+                    <input type="checkbox" class="exclude-check" ${data?.isExclude === true || data?.isExclude === "true" ? 'checked' : ''} onchange="updateTotal()">
                     <button onclick="if(confirm('삭제?')){document.getElementById('card-${id}').remove(); updateTotal();}" style="border:none; background:none; color:#7f8c8d; cursor:pointer;">삭제</button>
                 </div>
             </div>
@@ -202,11 +160,11 @@
                 <div class="field-group"><label>작업자</label><input type="text" class="worker" value="${data?.worker || ''}"></div>
                 <div class="field-group"><label>업체명</label><input type="text" class="company" value="${data?.company || ''}"></div>
                 <div class="field-group"><label>금액</label><input type="text" class="amount amount-input" value="${data?.amount || ''}" oninput="updateTotal()" onblur="smartAmount(this)"></div>
-                <div class="field-group"><label style="color:#e74c3c">내 거래처(10%)</label><input type="checkbox" class="my-biz-check" ${data?.myBiz ? 'checked' : ''} onchange="updateTotal()"></div>
+                <div class="field-group"><label style="color:#e74c3c">내 거래처(10%)</label><input type="checkbox" class="my-biz-check" ${data?.myBiz === true || data?.myBiz === "true" ? 'checked' : ''} onchange="updateTotal()"></div>
                 <div class="field-group"><label>장소</label><input type="text" class="location" value="${data?.location || ''}"></div>
                 <div class="field-group"><label>유형</label><input type="text" class="type" value="${data?.type || ''}"></div>
                 <div class="field-group"><label>30M</label><input type="text" class="m30" value="${data?.m30 || ''}"></div>
-                <div class="field-group"><label>직수</label><input type="checkbox" class="direct" ${data?.direct ? 'checked' : ''}></div>
+                <div class="field-group"><label>직수</label><input type="checkbox" class="direct" ${data?.direct === true || data?.direct === "true" ? 'checked' : ''}></div>
                 <div class="field-group" style="grid-column: span 2;"><label>비고</label><textarea class="note" rows="2">${data?.note || ''}</textarea></div>
             </div>`;
         const list = document.getElementById('logList');
@@ -231,7 +189,7 @@
 
     async function saveToCloud(manual) {
         const logs = Array.from(document.querySelectorAll('.log-card')).map(card => ({
-            id: card.id.replace('card-',''),
+            id: card.id.replace('card-',''), // 카드 ID를 함께 전송하여 시트에서 해당 행을 찾아 업데이트하게 함
             date: card.querySelector('.edit-date').value,
             worker: card.querySelector('.worker').value,
             company: card.querySelector('.company').value,
@@ -246,8 +204,13 @@
         }));
         document.getElementById('loadingLayer').style.display = 'flex';
         try {
-            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "save", logs: logs }) });
-            if(manual) alert("✅ 저장 완료");
+            // mode: "no-cors"를 쓰면 응답 확인이 안되므로, 제대로 된 통신을 위해 삭제 후 전송
+            await fetch(API_URL, { 
+                method: "POST", 
+                headers: { "Content-Type": "text/plain" }, // CORS 문제 방지를 위해 text/plain 사용
+                body: JSON.stringify({ action: "save", logs: logs }) 
+            });
+            if(manual) alert("✅ 저장 완료 (시트에 새 기록 추가 또는 기존 항목 수정)");
         } catch(e) { alert("❌ 저장 실패"); }
         document.getElementById('loadingLayer').style.display = 'none';
     }
