@@ -3,76 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>통합 작업일지 V16.0</title>
+    <title>작업일지</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; --calc-bg: #ffffff; }
         @media (prefers-color-scheme: dark) { 
             :root { --bg-body: #181a1b; --bg-card: #242729; --text-main: #e8e6e3; --border: #3e4446; --calc-bg: #2c3133; } 
         }
-        body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 0 15px 15px 15px; }
+        body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 0 15px 15px 15px; min-height: 100vh; }
         .container { max-width: 1000px; margin: 0 auto; }
         
-        /* [핵심] 상단 고정 영역 설정 */
-        .sticky-wrapper {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: var(--bg-body);
-            padding: 15px 0 10px 0;
-        }
-
-        .summary-bar { 
-            display: flex; gap: 10px; margin-bottom: 10px; padding: 15px; 
-            background: #2c3e50; color: white; border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-        }
+        /* 헤더 및 요약바 */
+        .sticky-wrapper { position: sticky; top: 0; z-index: 1000; background: var(--bg-body); padding: 15px 0 10px 0; }
+        .summary-bar { display: flex; gap: 10px; margin-bottom: 10px; padding: 15px; background: #2c3e50; color: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .summary-item { flex: 1; text-align: center; }
         .summary-label { font-size: 11px; opacity: 0.8; }
         .summary-value { font-size: 1.1em; font-weight: bold; margin-top: 3px; }
 
-        .controls-card {
-            background: var(--bg-card);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .filter-section { 
-            display: flex; gap: 8px; margin-bottom: 12px; padding: 10px; 
-            background: rgba(52, 152, 219, 0.1); border-radius: 8px; 
-            align-items: center; justify-content: center; 
-        }
+        /* 컨트롤 카드 */
+        .controls-card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .filter-section { display: flex; gap: 8px; margin-bottom: 12px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; align-items: center; justify-content: center; }
         .filter-section select { padding: 6px; border-radius: 6px; border: 1px solid var(--accent); background: var(--bg-card); color: var(--text-main); }
 
         .top-controls { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; flex-grow: 1; font-size: 13px; }
         .btn-add { background: #3498db; } .btn-save { background: #2ecc71; } .btn-calc { background: #9b59b6; } .btn-excel { background: #f39c12; }
+        .status-msg { font-size: 12px; text-align: center; margin-top: 8px; color: #7f8c8d; }
 
-        /* 계산기 및 로그 카드 */
+        /* 로그 카드 스타일 */
+        .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); margin-top: 10px; transition: opacity 0.3s; }
+        .log-card.excluded { background: rgba(231, 76, 60, 0.05); border-color: #fab1a0; opacity: 0.8; }
+        .log-header { padding: 10px; background: rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .log-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
+        .field-group { display: flex; flex-direction: column; }
+        label { font-size: 11px; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
+        input, textarea { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-main); font-size: 14px; }
+        .amount-input { border-color: #e67e22; color: #e67e22; font-weight: bold; }
+        
+        #loadingLayer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center; color:white; font-weight:bold; }
+
+        /* 계산기 스타일 */
         #floatingCalc { position: fixed; top: 180px; right: 20px; width: 280px; background: var(--calc-bg); border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); z-index: 2000; display: none; overflow: hidden; }
         .calc-header { background: var(--accent); color: white; padding: 12px; font-weight: bold; cursor: move; display: flex; justify-content: space-between; align-items: center; }
         .calc-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .calc-row { display: flex; justify-content: space-between; align-items: center; }
         .calc-row input { width: 110px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); }
         .result-box { background: rgba(52, 152, 219, 0.15); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; text-align: center; }
-
-        .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); margin-top: 10px; }
-        .log-card.excluded { background: rgba(231, 76, 60, 0.05); border-color: #fab1a0; opacity: 0.8; }
-        .log-header { padding: 10px; background: rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
-        .log-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
-        .field-group { display: flex; flex-direction: column; }
-        label { font-size: 11px; color: #7f8c8d; margin-bottom: 4px; font-weight: bold; }
-        input, textarea { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-main); font-size: 14px; }
-        .amount-input { border-color: #e67e22; color: #e67e22; font-weight: bold; }
-        #loadingLayer { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center; color:white; font-weight:bold; }
     </style>
 </head>
 <body onclick="handleGlobalClick(event)">
 <div id="loadingLayer">데이터 처리 중...</div>
 
-<!-- 고정 계산기 -->
+<!-- 부유형 계산기 -->
 <div id="floatingCalc" onclick="event.stopPropagation()">
     <div class="calc-header" id="calcHeader">
         <span>🧮 단가 계산기</span>
@@ -91,102 +73,162 @@
 </div>
 
 <div class="container">
-    <!-- 스크롤 시 따라오는 영역 시작 -->
     <div class="sticky-wrapper">
         <div class="summary-bar">
             <div class="summary-item"><div class="summary-label">총 매출</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
-            <div class="summary-item"><div class="summary-label">내 수당(제외항목 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
+            <div class="summary-item"><div class="summary-label">내 수당(제외 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
         </div>
-
         <div class="controls-card">
             <div class="filter-section">
                 📅 <select id="filterYear"></select>
-                <select id="filterMonth">
-                    <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
-                    <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
-                    <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
-                    <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-                </select>
-                <button onclick="loadFromCloud()" style="margin-left:5px; padding:5px 15px; cursor:pointer; border-radius: 6px; border: 1px solid #ccc;">조회</button>
+                <select id="filterMonth"></select>
+                <button onclick="loadFromCloud()" style="margin-left:5px; padding:5px 15px; cursor:pointer; border-radius: 6px; border: 1px solid #ccc;">🔄 새로고침</button>
             </div>
             <div class="top-controls">
                 <input type="date" id="mainDate" style="flex-grow: 1.5; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
                 <button class="btn btn-add" onclick="addLog()">➕ 추가</button>
                 <button class="btn btn-calc" onclick="toggleCalc(event)">🧮 계산기</button>
-                <button class="btn btn-save" onclick="saveToCloud(true)">💾 저장</button>
+                <button class="btn btn-save" onclick="saveData(true)">💾 통합 저장</button>
                 <button class="btn btn-excel" onclick="exportEx()">📊 엑셀</button>
             </div>
+            <div id="statusMsg" class="status-msg">온라인 연결 확인 중...</div>
         </div>
     </div>
-    <!-- 스크롤 시 따라오는 영역 끝 -->
-
     <div id="logList"></div>
 </div>
 
 <script>
-    // [기존 스크립트 로직 그대로 유지]
     const API_URL = "https://script.google.com/macros/s/AKfycbxoy3X2D_0OXAN-_2VHgFY9QQAQDMNNaBKPXw6MD7skeiQDXfJYEQlAsT9T2CTVqSfesg/exec";
 
-    function resetCalc() {
-        document.getElementById('sTime').value = '';
-        document.getElementById('eTime').value = '';
-        document.getElementById('directMin').value = '';
-        document.getElementById('rTimeDisp').innerText = '시간을 입력하세요';
-        document.getElementById('rPriceDisp').innerText = '0원';
+    // --- 계산기 로직 (수정된 handleGlobalClick 포함) ---
+    function resetCalc() { 
+        document.getElementById('sTime').value = ''; 
+        document.getElementById('eTime').value = ''; 
+        document.getElementById('directMin').value = ''; 
+        document.getElementById('rTimeDisp').innerText = '시간을 입력하세요'; 
+        document.getElementById('rPriceDisp').innerText = '0원'; 
     }
-    function closeCalc() { document.getElementById('floatingCalc').style.display = 'none'; resetCalc(); }
-    function toggleCalc(e) { e.stopPropagation(); const el = document.getElementById('floatingCalc'); el.style.display = (el.style.display === 'block') ? 'none' : 'block'; }
-    function handleGlobalClick(e) {
-        const calc = document.getElementById('floatingCalc');
-        if (calc.style.display === 'block') {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') closeCalc();
+
+    function closeCalc() { 
+        document.getElementById('floatingCalc').style.display = 'none'; 
+        resetCalc(); 
+    }
+
+    function toggleCalc(e) { 
+        e.stopPropagation(); 
+        const el = document.getElementById('floatingCalc'); 
+        if (el.style.display === 'block') {
+            closeCalc();
+        } else {
+            el.style.display = 'block';
         }
     }
+
+    // 수정된 전역 클릭 감지: 계산기 외부 영역 클릭 시 무조건 초기화 및 닫기
+    function handleGlobalClick(e) {
+        const calc = document.getElementById('floatingCalc');
+
+        // 계산기가 열려있고, 클릭한 대상이 계산기 내부에 포함되어 있지 않을 때
+        if (calc.style.display === 'block' && !calc.contains(e.target)) {
+            closeCalc(); // 초기화 + 닫기 실행
+        }
+    }
+
     function updateCalcResult(min) {
         let p = 0;
-        if (min >= 1 && min <= 70) p = 200000;
-        else if (min <= 130) p = 255000;
-        else if (min <= 240) p = 310000;
-        else if (min <= 479) p = 365000;
+        if (min >= 1 && min <= 70) p = 200000; 
+        else if (min <= 130) p = 255000; 
+        else if (min <= 240) p = 310000; 
+        else if (min <= 479) p = 365000; 
         else if (min >= 480) p = 475000;
-        document.getElementById('rTimeDisp').innerText = `계산 결과: ${min}분`;
+        document.getElementById('rTimeDisp').innerText = `계산 결과: ${min}분`; 
         document.getElementById('rPriceDisp').innerText = p.toLocaleString() + "원";
     }
+
     function calcByTime() {
-        const s = document.getElementById('sTime').value;
-        const e = document.getElementById('eTime').value;
+        const s = document.getElementById('sTime').value, e = document.getElementById('eTime').value;
         if (!s || !e) return;
         let diff = (new Date(`2000-01-01T${e}`) - new Date(`2000-01-01T${s}`)) / 60000;
         if (diff < 0) diff += 1440; 
-        document.getElementById('directMin').value = diff;
+        document.getElementById('directMin').value = diff; 
         updateCalcResult(diff);
     }
-    function calcByMin() {
-        const min = parseInt(document.getElementById('directMin').value) || 0;
-        document.getElementById('sTime').value = ''; document.getElementById('eTime').value = '';
-        updateCalcResult(min);
+
+    function calcByMin() { 
+        const min = parseInt(document.getElementById('directMin').value) || 0; 
+        document.getElementById('sTime').value = ''; 
+        document.getElementById('eTime').value = ''; 
+        updateCalcResult(min); 
     }
 
-    function updateTotal() {
-        let totalSales = 0, totalMyPay = 0;
-        document.querySelectorAll('.log-card').forEach(card => {
-            const isExcluded = card.querySelector('.exclude-check').checked;
-            const amount = parseInt(card.querySelector('.amount-input').value.replace(/,/g, '')) || 0;
-            const isMyBiz = card.querySelector('.my-biz-check').checked;
-            totalSales += amount;
-            if (!isExcluded) {
-                card.classList.remove('excluded');
-                totalMyPay += isMyBiz ? (amount * 0.5) : (amount * 0.4);
-            } else {
-                card.classList.add('excluded');
-            }
-        });
-        document.getElementById('totalAmountDisp').innerText = totalSales.toLocaleString() + "원";
-        document.getElementById('myShareDisp').innerText = Math.floor(totalMyPay).toLocaleString() + "원";
+    // --- 데이터 동기화 로직 ---
+    async function loadFromCloud() {
+        const msgEl = document.getElementById('statusMsg');
+        msgEl.innerText = "🌐 온라인 데이터를 불러오는 중...";
+        document.getElementById('loadingLayer').style.display = 'flex';
+        try {
+            const resp = await fetch(`${API_URL}?t=${Date.now()}`);
+            const data = await resp.json();
+            localStorage.setItem('localLogs', JSON.stringify(data));
+            msgEl.innerText = "✅ 온라인 데이터 동기화 완료";
+            renderFilteredData(data);
+        } catch(e) {
+            msgEl.innerText = "⚠️ 온라인 연결 실패 - 로컬 데이터 로드";
+            const savedLocal = localStorage.getItem('localLogs');
+            if (savedLocal) renderFilteredData(JSON.parse(savedLocal));
+        }
+        document.getElementById('loadingLayer').style.display = 'none';
+    }
+
+    async function saveData(manual) {
+        const logs = collectData();
+        const msgEl = document.getElementById('statusMsg');
+        localStorage.setItem('localLogs', JSON.stringify(logs));
+        document.getElementById('loadingLayer').style.display = 'flex';
+        try {
+            await fetch(API_URL, { 
+                method: "POST", 
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ action: "save", logs: logs }) 
+            });
+            msgEl.innerText = "✅ 온라인 & 로컬 저장 성공";
+            if(manual) alert("✅ 저장되었습니다.");
+        } catch(e) { 
+            msgEl.innerText = "❌ 온라인 저장 실패 (로컬 백업 완료)";
+            alert("⚠️ 온라인 저장 실패. 인터넷 확인 요망."); 
+        }
+        document.getElementById('loadingLayer').style.display = 'none';
+    }
+
+    // --- UI 렌더링 ---
+    function collectData() {
+        return Array.from(document.querySelectorAll('.log-card')).map(card => ({
+            id: card.id.replace('card-',''),
+            date: card.querySelector('.edit-date').value,
+            worker: card.querySelector('.worker').value,
+            company: card.querySelector('.company').value,
+            amount: card.querySelector('.amount').value,
+            location: card.querySelector('.location').value,
+            type: card.querySelector('.type').value,
+            m30: card.querySelector('.m30').value,
+            direct: card.querySelector('.direct').checked,
+            myBiz: card.querySelector('.my-biz-check').checked,
+            isExclude: card.querySelector('.exclude-check').checked,
+            note: card.querySelector('.note').value
+        }));
+    }
+
+    function renderFilteredData(data) {
+        document.getElementById('logList').innerHTML = '';
+        const targetYM = `${document.getElementById('filterYear').value}-${document.getElementById('filterMonth').value}`;
+        data.filter(d => fixDate(d.date).startsWith(targetYM))
+            .sort((a,b) => new Date(fixDate(a.date)) - new Date(fixDate(b.date)))
+            .forEach(d => addLog(d, true));
+        updateTotal();
     }
 
     function addLog(data = null, isLoad = false) {
-        const id = data ? data.id : Date.now() + Math.floor(Math.random()*1000);
+        const id = data ? data.id : Date.now();
         const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
         const div = document.createElement('div');
         div.className = 'log-card'; div.id = `card-${id}`;
@@ -203,7 +245,7 @@
                 <div class="field-group"><label>작업자</label><input type="text" class="worker" value="${data?.worker || ''}"></div>
                 <div class="field-group"><label>업체명</label><input type="text" class="company" value="${data?.company || ''}"></div>
                 <div class="field-group"><label>금액</label><input type="text" class="amount amount-input" value="${data?.amount || ''}" oninput="updateTotal()" onblur="smartAmount(this)"></div>
-                <div class="field-group"><label style="color:#e74c3c">내 거래처(10%)</label><input type="checkbox" class="my-biz-check" ${data?.myBiz === true || data?.myBiz === "true" ? 'checked' : ''} onchange="updateTotal()"></div>
+                <div class="field-group"><label style="color:#e74c3c">내 거래처</label><input type="checkbox" class="my-biz-check" ${data?.myBiz === true || data?.myBiz === "true" ? 'checked' : ''} onchange="updateTotal()"></div>
                 <div class="field-group"><label>장소</label><input type="text" class="location" value="${data?.location || ''}"></div>
                 <div class="field-group"><label>유형</label><input type="text" class="type" value="${data?.type || ''}"></div>
                 <div class="field-group"><label>30M</label><input type="text" class="m30" value="${data?.m30 || ''}"></div>
@@ -215,50 +257,29 @@
         updateTotal();
     }
 
-    async function loadFromCloud() {
-        document.getElementById('loadingLayer').style.display = 'flex';
-        try {
-            const resp = await fetch(`${API_URL}?t=${Date.now()}`);
-            const data = await resp.json();
-            document.getElementById('logList').innerHTML = '';
-            const targetYM = `${document.getElementById('filterYear').value}-${document.getElementById('filterMonth').value}`;
-            data.filter(d => fixDate(d.date).startsWith(targetYM))
-                .sort((a,b) => new Date(fixDate(a.date)) - new Date(fixDate(b.date)))
-                .forEach(d => addLog(d, true));
-            updateTotal();
-        } catch(e) { alert("데이터 로드 실패"); }
-        document.getElementById('loadingLayer').style.display = 'none';
+    function updateTotal() {
+        let totalSales = 0, totalMyPay = 0;
+        document.querySelectorAll('.log-card').forEach(card => {
+            const isExcluded = card.querySelector('.exclude-check').checked;
+            const amountStr = card.querySelector('.amount-input').value.replace(/,/g, '');
+            const amount = parseInt(amountStr) || 0;
+            const isMyBiz = card.querySelector('.my-biz-check').checked;
+            totalSales += amount;
+            if (!isExcluded) { 
+                card.classList.remove('excluded'); 
+                totalMyPay += isMyBiz ? (amount * 0.5) : (amount * 0.4); 
+            } else { 
+                card.classList.add('excluded'); 
+            }
+        });
+        document.getElementById('totalAmountDisp').innerText = totalSales.toLocaleString() + "원";
+        document.getElementById('myShareDisp').innerText = Math.floor(totalMyPay).toLocaleString() + "원";
     }
 
-    async function saveToCloud(manual) {
-        const logs = Array.from(document.querySelectorAll('.log-card')).map(card => ({
-            id: card.id.replace('card-',''),
-            date: card.querySelector('.edit-date').value,
-            worker: card.querySelector('.worker').value,
-            company: card.querySelector('.company').value,
-            amount: card.querySelector('.amount').value,
-            location: card.querySelector('.location').value,
-            type: card.querySelector('.type').value,
-            m30: card.querySelector('.m30').value,
-            direct: card.querySelector('.direct').checked,
-            myBiz: card.querySelector('.my-biz-check').checked,
-            isExclude: card.querySelector('.exclude-check').checked,
-            note: card.querySelector('.note').value
-        }));
-        document.getElementById('loadingLayer').style.display = 'flex';
-        try {
-            await fetch(API_URL, { 
-                method: "POST", 
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "save", logs: logs }) 
-            });
-            if(manual) alert("✅ 저장 완료");
-        } catch(e) { alert("❌ 저장 실패"); }
-        document.getElementById('loadingLayer').style.display = 'none';
-    }
-
+    // --- 유틸리티 ---
     function initFilter() {
         const yearSelect = document.getElementById('filterYear');
+        const monthSelect = document.getElementById('filterMonth');
         const curr = new Date();
         for(let i = curr.getFullYear()-1; i <= curr.getFullYear()+1; i++) {
             const opt = document.createElement('option');
@@ -266,48 +287,48 @@
             if(i === curr.getFullYear()) opt.selected = true;
             yearSelect.appendChild(opt);
         }
-        document.getElementById('filterMonth').value = ("0" + (curr.getMonth() + 1)).slice(-2);
+        for(let i=1; i<=12; i++) {
+            const opt = document.createElement('option');
+            const val = ("0"+i).slice(-2);
+            opt.value = val; opt.innerText = i + "월";
+            if(i === curr.getMonth()+1) opt.selected = true;
+            monthSelect.appendChild(opt);
+        }
+        [yearSelect, monthSelect].forEach(el => el.addEventListener('change', () => {
+            const localData = JSON.parse(localStorage.getItem('localLogs') || '[]');
+            renderFilteredData(localData);
+        }));
     }
 
-    function fixDate(d) {
-        if (!d) return "";
-        let date = new Date(d);
-        if (isNaN(date.getTime())) return String(d).split('T')[0];
-        return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`;
+    function fixDate(d) { if (!d) return ""; let date = new Date(d); if (isNaN(date.getTime())) return String(d).split('T')[0]; return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`; }
+    
+    function smartAmount(input) { 
+        let val = input.value.replace(/,/g, ''); 
+        if (!val || isNaN(val)) return; 
+        let num = parseFloat(val); 
+        if (num > 0 && num < 1000) num *= 10000; 
+        input.value = num.toLocaleString(); 
+        updateTotal(); 
     }
-
-    function smartAmount(input) {
-        let val = input.value.replace(/,/g, '');
-        if (!val || isNaN(val)) return;
-        let num = parseFloat(val);
-        if (num > 0 && num < 1000) num *= 10000;
-        input.value = num.toLocaleString();
-        updateTotal();
-    }
-
+    
     function makeDraggable(el) {
-        let p1 = 0, p2 = 0, p3 = 0, p4 = 0;
-        const header = document.getElementById("calcHeader");
+        let p1 = 0, p2 = 0, p3 = 0, p4 = 0; const header = document.getElementById("calcHeader");
         header.onmousedown = (e) => {
-            if (e.target.tagName === 'SPAN') return;
-            e.preventDefault(); p3 = e.clientX; p4 = e.clientY;
+            if (e.target.tagName === 'SPAN') return; 
+            e.preventDefault(); 
+            p3 = e.clientX; p4 = e.clientY;
             document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; };
-            document.onmousemove = (e) => {
-                p1 = p3 - e.clientX; p2 = p4 - e.clientY; p3 = e.clientX; p4 = e.clientY;
-                el.style.top = (el.offsetTop - p2) + "px"; el.style.left = (el.offsetLeft - p1) + "px";
+            document.onmousemove = (e) => { 
+                p1 = p3 - e.clientX; p2 = p4 - e.clientY; p3 = e.clientX; p4 = e.clientY; 
+                el.style.top = (el.offsetTop - p2) + "px"; 
+                el.style.left = (el.offsetLeft - p1) + "px"; 
             };
         };
     }
 
     function exportEx() {
-        const rows = Array.from(document.querySelectorAll('.log-card')).map(c => ({
-            "날짜": c.querySelector('.edit-date').value,
-            "업체명": c.querySelector('.company').value,
-            "금액": c.querySelector('.amount').value,
-            "비고": c.querySelector('.note').value
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
+        const rows = collectData().map(d => ({ "날짜": d.date, "작업자": d.worker, "업체명": d.company, "금액": d.amount, "장소": d.location, "비고": d.note }));
+        const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "작업일지");
         XLSX.writeFile(wb, `작업일지_${document.getElementById('filterYear').value}_${document.getElementById('filterMonth').value}.xlsx`);
     }
