@@ -3,31 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>통합 작업일지 V15.9</title>
+    <title>통합 작업일지 V16.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root { --bg-body: #f1f2f6; --bg-card: #ffffff; --text-main: #2c3e50; --accent: #3498db; --border: #dcdde1; --calc-bg: #ffffff; }
         @media (prefers-color-scheme: dark) { 
             :root { --bg-body: #181a1b; --bg-card: #242729; --text-main: #e8e6e3; --border: #3e4446; --calc-bg: #2c3133; } 
         }
-        body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 15px; }
-        .container { max-width: 1000px; margin: 0 auto; background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .summary-bar { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2c3e50; color: white; border-radius: 10px; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        body { font-family: sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 0 15px 15px 15px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        /* [핵심] 상단 고정 영역 설정 */
+        .sticky-wrapper {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg-body);
+            padding: 15px 0 10px 0;
+        }
+
+        .summary-bar { 
+            display: flex; gap: 10px; margin-bottom: 10px; padding: 15px; 
+            background: #2c3e50; color: white; border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+        }
         .summary-item { flex: 1; text-align: center; }
         .summary-label { font-size: 11px; opacity: 0.8; }
         .summary-value { font-size: 1.1em; font-weight: bold; margin-top: 3px; }
-        #floatingCalc { position: fixed; top: 120px; right: 20px; width: 280px; background: var(--calc-bg); border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); z-index: 1000; display: none; overflow: hidden; }
+
+        .controls-card {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .filter-section { 
+            display: flex; gap: 8px; margin-bottom: 12px; padding: 10px; 
+            background: rgba(52, 152, 219, 0.1); border-radius: 8px; 
+            align-items: center; justify-content: center; 
+        }
+        .filter-section select { padding: 6px; border-radius: 6px; border: 1px solid var(--accent); background: var(--bg-card); color: var(--text-main); }
+
+        .top-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; flex-grow: 1; font-size: 13px; }
+        .btn-add { background: #3498db; } .btn-save { background: #2ecc71; } .btn-calc { background: #9b59b6; } .btn-excel { background: #f39c12; }
+
+        /* 계산기 및 로그 카드 */
+        #floatingCalc { position: fixed; top: 180px; right: 20px; width: 280px; background: var(--calc-bg); border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); z-index: 2000; display: none; overflow: hidden; }
         .calc-header { background: var(--accent); color: white; padding: 12px; font-weight: bold; cursor: move; display: flex; justify-content: space-between; align-items: center; }
         .calc-body { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .calc-row { display: flex; justify-content: space-between; align-items: center; }
         .calc-row input { width: 110px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main); }
         .result-box { background: rgba(52, 152, 219, 0.15); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; text-align: center; }
-        .filter-section { display: flex; gap: 8px; margin-bottom: 15px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; align-items: center; justify-content: center; }
-        .filter-section select { padding: 8px; border-radius: 6px; border: 1px solid var(--accent); background: var(--bg-card); color: var(--text-main); }
-        .top-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; flex-grow: 1; font-size: 13px; }
-        .btn-add { background: #3498db; } .btn-save { background: #2ecc71; } .btn-calc { background: #9b59b6; } .btn-excel { background: #f39c12; }
-        .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); }
+
+        .log-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 15px; background: var(--bg-card); margin-top: 10px; }
         .log-card.excluded { background: rgba(231, 76, 60, 0.05); border-color: #fab1a0; opacity: 0.8; }
         .log-header { padding: 10px; background: rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
         .log-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
@@ -40,6 +71,8 @@
 </head>
 <body onclick="handleGlobalClick(event)">
 <div id="loadingLayer">데이터 처리 중...</div>
+
+<!-- 고정 계산기 -->
 <div id="floatingCalc" onclick="event.stopPropagation()">
     <div class="calc-header" id="calcHeader">
         <span>🧮 단가 계산기</span>
@@ -56,31 +89,42 @@
         </div>
     </div>
 </div>
+
 <div class="container">
-    <div class="summary-bar">
-        <div class="summary-item"><div class="summary-label">총 매출</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
-        <div class="summary-item"><div class="summary-label">내 수당(제외항목 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
+    <!-- 스크롤 시 따라오는 영역 시작 -->
+    <div class="sticky-wrapper">
+        <div class="summary-bar">
+            <div class="summary-item"><div class="summary-label">총 매출</div><div id="totalAmountDisp" class="summary-value">0원</div></div>
+            <div class="summary-item"><div class="summary-label">내 수당(제외항목 뺌)</div><div id="myShareDisp" class="summary-value" style="color: #f1c40f;">0원</div></div>
+        </div>
+
+        <div class="controls-card">
+            <div class="filter-section">
+                📅 <select id="filterYear"></select>
+                <select id="filterMonth">
+                    <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
+                    <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
+                    <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
+                    <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+                </select>
+                <button onclick="loadFromCloud()" style="margin-left:5px; padding:5px 15px; cursor:pointer; border-radius: 6px; border: 1px solid #ccc;">조회</button>
+            </div>
+            <div class="top-controls">
+                <input type="date" id="mainDate" style="flex-grow: 1.5; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                <button class="btn btn-add" onclick="addLog()">➕ 추가</button>
+                <button class="btn btn-calc" onclick="toggleCalc(event)">🧮 계산기</button>
+                <button class="btn btn-save" onclick="saveToCloud(true)">💾 저장</button>
+                <button class="btn btn-excel" onclick="exportEx()">📊 엑셀</button>
+            </div>
+        </div>
     </div>
-    <div class="filter-section">
-        📅 <select id="filterYear"></select>
-        <select id="filterMonth">
-            <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
-            <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
-            <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
-            <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-        </select>
-        <button onclick="loadFromCloud()" style="margin-left:5px; padding:5px 15px; cursor:pointer;">조회</button>
-    </div>
-    <div class="top-controls">
-        <input type="date" id="mainDate" style="flex-grow: 1.5;">
-        <button class="btn btn-add" onclick="addLog()">➕ 추가</button>
-        <button class="btn btn-calc" onclick="toggleCalc(event)">🧮 계산기</button>
-        <button class="btn btn-save" onclick="saveToCloud(true)">💾 저장</button>
-        <button class="btn btn-excel" onclick="exportEx()">📊 엑셀</button>
-    </div>
+    <!-- 스크롤 시 따라오는 영역 끝 -->
+
     <div id="logList"></div>
 </div>
+
 <script>
+    // [기존 스크립트 로직 그대로 유지]
     const API_URL = "https://script.google.com/macros/s/AKfycbxoy3X2D_0OXAN-_2VHgFY9QQAQDMNNaBKPXw6MD7skeiQDXfJYEQlAsT9T2CTVqSfesg/exec";
 
     function resetCalc() {
@@ -142,14 +186,13 @@
     }
 
     function addLog(data = null, isLoad = false) {
-        // ID 보존: 로드된 데이터면 d.id를 쓰고, 새로 추가면 타임스탬프를 씀
         const id = data ? data.id : Date.now() + Math.floor(Math.random()*1000);
         const dateValue = data ? fixDate(data.date) : document.getElementById('mainDate').value;
         const div = document.createElement('div');
         div.className = 'log-card'; div.id = `card-${id}`;
         div.innerHTML = `
             <div class="log-header">
-                <input type="date" class="edit-date" value="${dateValue}" style="border:none; background:none; font-weight:bold;">
+                <input type="date" class="edit-date" value="${dateValue}" style="border:none; background:none; font-weight:bold; color:var(--text-main);">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <label style="color:#e74c3c; font-size:12px;">수당제외</label>
                     <input type="checkbox" class="exclude-check" ${data?.isExclude === true || data?.isExclude === "true" ? 'checked' : ''} onchange="updateTotal()">
@@ -189,7 +232,7 @@
 
     async function saveToCloud(manual) {
         const logs = Array.from(document.querySelectorAll('.log-card')).map(card => ({
-            id: card.id.replace('card-',''), // 카드 ID를 함께 전송하여 시트에서 해당 행을 찾아 업데이트하게 함
+            id: card.id.replace('card-',''),
             date: card.querySelector('.edit-date').value,
             worker: card.querySelector('.worker').value,
             company: card.querySelector('.company').value,
@@ -204,13 +247,12 @@
         }));
         document.getElementById('loadingLayer').style.display = 'flex';
         try {
-            // mode: "no-cors"를 쓰면 응답 확인이 안되므로, 제대로 된 통신을 위해 삭제 후 전송
             await fetch(API_URL, { 
                 method: "POST", 
-                headers: { "Content-Type": "text/plain" }, // CORS 문제 방지를 위해 text/plain 사용
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ action: "save", logs: logs }) 
             });
-            if(manual) alert("✅ 저장 완료 (시트에 새 기록 추가 또는 기존 항목 수정)");
+            if(manual) alert("✅ 저장 완료");
         } catch(e) { alert("❌ 저장 실패"); }
         document.getElementById('loadingLayer').style.display = 'none';
     }
